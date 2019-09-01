@@ -4,6 +4,19 @@ import Button from '@material-ui/core/Button';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import Typography from '@material-ui/core/Typography';
 import Container from '@material-ui/core/Container';
+import {makeStyles} from '@material-ui/core/styles';
+import Paper from '@material-ui/core/Paper';
+import Grid from '@material-ui/core/Grid';
+import InputLabel from '@material-ui/core/InputLabel';
+import MenuItem from '@material-ui/core/MenuItem';
+import FormControl from '@material-ui/core/FormControl';
+import Select from '@material-ui/core/Select';
+import TextField from '@material-ui/core/TextField';
+import Radio from '@material-ui/core/Radio';
+import RadioGroup from '@material-ui/core/RadioGroup';
+import FormHelperText from '@material-ui/core/FormHelperText';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import FormLabel from '@material-ui/core/FormLabel';
 
 import './App.css';
 
@@ -53,13 +66,20 @@ class Home extends Component {
         wheel_r: 3,
         wheel_m: 2,
         wheel_l: 1,
-        ring_r: 1,
-        ring_m: 1,
-        ring_l: 1,
+        ring_r: 'A',
+        ring_m: 'A',
+        ring_l: 'A',
 
-        rightw_set: '',
-        middlew_set: '',
-        leftw_set: '',
+        rightw_set: 'A',
+        middlew_set: 'A',
+        leftw_set: 'A',
+
+        // states for UI
+        rOpen: false,
+        wOpen1: false,
+        wOpen2: false,
+        wOpen3: false,
+        gOpen:false,
 
     };
 
@@ -200,6 +220,10 @@ class Home extends Component {
             return false;
         }
 
+        let ring_r = plaintext.indexOf(this.state.ring_r);
+        let ring_m = plaintext.indexOf(this.state.ring_m);
+        let ring_l = plaintext.indexOf(this.state.ring_l);
+
         // Get input letter
         var letterinput = this.state.textin.toUpperCase();
 
@@ -233,17 +257,17 @@ class Home extends Component {
         // A -->  A  --> A
 
         // First Pass - R Wheel
-        number = this.mapLetter(number, this.state.ring_r, start_r, this.state.wheel_r, 1);
+        number = this.mapLetter(number, ring_r, start_r, this.state.wheel_r, 1);
 
         this.run_debug(0, number);
 
         // First Pass - M Wheel
-        number = this.mapLetter(number, this.state.ring_m, start_m, this.state.wheel_m, 1);
+        number = this.mapLetter(number, ring_m, start_m, this.state.wheel_m, 1);
 
         this.run_debug(0, number);
 
         // First Pass - L Wheel
-        number = this.mapLetter(number, this.state.ring_l, start_l, this.state.wheel_l, 1);
+        number = this.mapLetter(number, ring_l, start_l, this.state.wheel_l, 1);
 
         this.run_debug(0, number);
 
@@ -256,17 +280,17 @@ class Home extends Component {
 
 
         // Second Pass - L Wheel
-        number = this.mapLetter(number, this.state.ring_l, start_l, this.state.wheel_l, 2);
+        number = this.mapLetter(number, ring_l, start_l, this.state.wheel_l, 2);
 
         this.run_debug(0, number);
 
         // Second Pass - M Wheel
-        number = this.mapLetter(number, this.state.ring_m, start_m, this.state.wheel_m, 2);
+        number = this.mapLetter(number, ring_m, start_m, this.state.wheel_m, 2);
 
         this.run_debug(0, number);
 
         // Second Pass - R Wheel
-        number = this.mapLetter(number, this.state.ring_r, start_r, this.state.wheel_r, 2);
+        number = this.mapLetter(number, ring_r, start_r, this.state.wheel_r, 2);
 
         this.run_debug(0, number);
 
@@ -351,7 +375,8 @@ class Home extends Component {
     clearSettings = () => {
         //todo reset the state
         // this.setState({});
-        window.location.reload(1);
+        window.location.reload();
+        alert('All settings cleared!');
     };
 
     componentDidMount() {
@@ -366,16 +391,260 @@ class Home extends Component {
         this.setState({plugboard: pb});
 
         // console.log(this.state);
+    };
 
-
+    validateChar = (ch) => {
+        if (ch.length > 1) ch = ch.charAt(ch.length - 1);
+        if (plaintext.indexOf(ch) < 1) return '';
+        else return ch;
     };
 
     render() {
+        //  const classes = useStyles();
+        const classes = {
+            root: {
+                flexGrow: 1,
+            }
+        };
+
         return (
             <div className="App">
 
                 <React.Fragment>
-                    <Container maxWidth={'100%'} style={{ backgroundColor: '#282c34', height: '100vh'}}>
+                    <Container maxWidth={'100%'} style={{backgroundColor: '#282c34', height: '100vh'}}>
+
+                        <Grid container style={{height: '100%'}} spacing={2} justify={'space-between'}
+                              direction={'row'}>
+                            <Grid item xs={12}>
+                                <Paper style={{height: 150, backgroundColor: '#e2e2e2'}}>xs=12</Paper>
+                            </Grid>
+                            <Grid item xs={4}>
+                                <Paper style={{height: 500, backgroundColor: '#e2e2e2', paddingTop: 20}}>
+                                    <div style={{marginLeft: 10}}>
+
+                                        {/*           Umkehrwalze starts            */}
+
+                                        <Typography variant="h6" gutterBottom>
+                                            Umkehrwalze :
+                                            <Select open={this.state.rOpen} onClose={() => {
+                                                this.setState({rOpen: false})
+                                            }}
+                                                    onOpen={() => {
+                                                        this.setState({rOpen: true})
+                                                    }}
+                                                    value={this.state.useReflector}
+                                                    onChange={(event) => {
+                                                        this.setState({useReflector: event.target.value})
+                                                    }}
+                                                    style={{marginLeft: 20}}>
+                                                <MenuItem value={'b'}>- - - B - - -</MenuItem>
+                                                <MenuItem value={'c'}>- - - C - - -</MenuItem>
+                                            </Select>
+                                            <InputLabel style={{fontSize: 13, marginTop: -5}}>Reflector
+                                                Wheel</InputLabel>
+
+                                        </Typography>
+                                    </div>
+
+                                    {/*            Walzenlage starts               */}
+
+                                    <div style={{marginLeft: 10,marginTop: 10}}>
+                                        <Typography variant="h6" gutterBottom>
+                                            Walzenlage :
+                                            <Select open={this.state.wOpen1}
+                                                    onClose={() => {
+                                                        this.setState({wOpen1: false})
+                                                    }}
+                                                    onOpen={() => {
+                                                        this.setState({wOpen1: true})
+                                                    }}
+                                                    value={this.state.wheel_l}
+                                                    onChange={(event) => {
+                                                        this.setState({wheel_l: event.target.value})
+                                                    }}
+                                                    style={{marginLeft: 35, backgroundColor: '#efefef'}}
+                                            >
+                                                <MenuItem value={1}>I</MenuItem>
+                                                <MenuItem value={2}>II</MenuItem>
+                                                <MenuItem value={3}>III</MenuItem>
+                                                <MenuItem value={4}>IV</MenuItem>
+                                                <MenuItem value={5}>V</MenuItem>
+                                            </Select>
+                                            <Select
+                                                open={this.state.wOpen2}
+                                                onClose={() => {
+                                                    this.setState({wOpen2: false})
+                                                }}
+                                                onOpen={() => {
+                                                    this.setState({wOpen2: true})
+                                                }}
+                                                value={this.state.wheel_m}
+                                                onChange={(event) => {
+                                                    this.setState({wheel_m: event.target.value})
+                                                }}
+                                                style={{marginLeft: 20, backgroundColor: '#efefef'}}
+                                            >
+                                                <MenuItem value={1}>I</MenuItem>
+                                                <MenuItem value={2}>II</MenuItem>
+                                                <MenuItem value={3}>III</MenuItem>
+                                                <MenuItem value={4}>IV</MenuItem>
+                                                <MenuItem value={5}>V</MenuItem>
+                                            </Select>
+                                            <Select
+                                                open={this.state.wOpen3}
+                                                onClose={() => {
+                                                    this.setState({wOpen3: false})
+                                                }}
+                                                onOpen={() => {
+                                                    this.setState({wOpen3: true})
+                                                }}
+                                                value={this.state.wheel_r}
+                                                onChange={(event) => {
+                                                    this.setState({wheel_r: event.target.value})
+                                                }}
+                                                style={{marginLeft: 20, backgroundColor: '#efefef'}}
+                                            >
+                                                <MenuItem value={1}>I</MenuItem>
+                                                <MenuItem value={2}>II</MenuItem>
+                                                <MenuItem value={3}>III</MenuItem>
+                                                <MenuItem value={4}>IV</MenuItem>
+                                                <MenuItem value={5}>V</MenuItem>
+                                            </Select>
+
+                                            <InputLabel style={{fontSize: 13, marginTop: -5}}>Wheel Order</InputLabel>
+
+                                        </Typography>
+                                    </div>
+
+                                    {/*            Ring setting start            */}
+
+                                    <div style={{marginLeft: 10,marginTop: 10}}>
+                                        <Typography variant="h6" gutterBottom>
+                                            Ringstellung :
+
+                                            <TextField
+                                                value={this.state.ring_l}
+                                                defaultValue={'A'}
+                                                onChange={(event) => {
+                                                    this.setState({ring_l: this.validateChar(event.target.value.toUpperCase())})
+                                                }}
+                                                style={{width: 40, marginLeft: 30, backgroundColor: '#efefef'}}
+                                            />
+                                            <TextField
+                                                value={this.state.ring_m}
+                                                defaultValue={'A'}
+                                                onChange={(event) => {
+                                                    this.setState({ring_m: this.validateChar(event.target.value.toUpperCase())})
+                                                }}
+                                                style={{width: 40, marginLeft: 20, backgroundColor: '#efefef'}}
+                                            />
+                                            <TextField
+                                                value={this.state.ring_r}
+                                                defaultValue={'A'}
+                                                onChange={(event) => {
+                                                    this.setState({ring_r: this.validateChar(event.target.value.toUpperCase())})
+                                                }}
+                                                style={{width: 40, marginLeft: 20, backgroundColor: '#efefef'}}
+                                            />
+
+                                            <InputLabel style={{fontSize: 13, marginTop: -5}}>Ring Setting</InputLabel>
+                                        </Typography>
+                                    </div>
+
+                                    {/*              Ground Setting Start                 */}
+
+                                    <div style={{marginLeft: 10,marginTop: 10}}>
+                                        <Typography variant="h6" gutterBottom>
+                                            Grundstellung :
+
+                                            <TextField
+                                                value={this.state.leftw_set}
+                                                defaultValue={'A'}
+                                                onChange={(event) => {
+                                                    this.setState({leftw_set: this.validateChar(event.target.value.toUpperCase())})
+                                                }}
+                                                style={{width: 40, marginLeft: 15, backgroundColor: '#efefef'}}
+                                            />
+                                            <TextField
+                                                value={this.state.middlew_set}
+                                                defaultValue={'A'}
+                                                onChange={(event) => {
+                                                    this.setState({middlew_set: this.validateChar(event.target.value.toUpperCase())})
+                                                }}
+                                                style={{width: 40, marginLeft: 20, backgroundColor: '#efefef'}}
+                                            />
+                                            <TextField
+                                                value={this.state.rightw_set}
+                                                defaultValue={'A'}
+                                                onChange={(event) => {
+                                                    this.setState({rightw_set: this.validateChar(event.target.value.toUpperCase())})
+                                                }}
+                                                style={{width: 40, marginLeft: 20, backgroundColor: '#efefef'}}
+                                            />
+
+                                            <InputLabel style={{fontSize: 13, marginTop: -5}}>Ground
+                                                Setting</InputLabel>
+                                        </Typography>
+                                    </div>
+
+                                    {/*             Input Method Start            */}
+                                    <div style={{marginLeft: 10, marginTop: 20}}>
+                                        <FormControl component="fieldset">
+                                            <FormLabel component="legend">Input Method</FormLabel>
+                                            <RadioGroup
+                                                aria-label="Input Method"
+                                                name="inputmethod"
+                                                value={this.state.inputmethod}
+                                                onChange={(event) => {
+                                                    this.setState({inputmethod: event.target.value})
+                                                }}
+                                                row>
+                                                <FormControlLabel value="single" control={<Radio/>}
+                                                                  label="Single Character"/>
+                                                <FormControlLabel value="multiple" control={<Radio/>} label="Block"/>
+                                            </RadioGroup>
+                                        </FormControl>
+                                    </div>
+
+                                    {/*           Grouping letters start            */}
+
+                                    <div style={{marginLeft: 10,marginTop: 10}}>
+                                        <Typography variant="h6" gutterBottom>
+                                            Grouping of letters :
+                                            <Select open={this.state.gOpen}
+                                                    onClose={() => {
+                                                        this.setState({gOpen: false})
+                                                    }}
+                                                    onOpen={() => {
+                                                        this.setState({gOpen: true})
+                                                    }}
+                                                    value={this.state.grouping}
+                                                    onChange={(event) => {
+                                                        this.setState({grouping: event.target.value})
+                                                    }}
+                                                    style={{marginLeft: 30, backgroundColor: '#efefef', width: 40   }}
+                                            >
+                                                <MenuItem value={3}>3</MenuItem>
+                                                <MenuItem value={4}>4</MenuItem>
+                                                <MenuItem value={5}>5</MenuItem>
+                                                <MenuItem value={6}>6</MenuItem>
+                                            </Select>
+                                        </Typography>
+                                    </div>
+
+                                    <div style={{marginLeft: 10,marginTop: 10}}>
+                                        <Button variant="contained" onClick={this.clearSettings}>
+                                            Clear Settings
+                                        </Button>
+                                    </div>
+
+                                </Paper>
+                            </Grid>
+                            <Grid item xs={8}>
+                                <Paper style={{height: 500, backgroundColor: '#e2e2e2'}}>xs=8</Paper>
+                            </Grid>
+                        </Grid>
+
 
                     </Container>
                 </React.Fragment>
@@ -398,5 +667,6 @@ class ListItem extends Component {
         );
     }
 }
+
 
 export default Home;

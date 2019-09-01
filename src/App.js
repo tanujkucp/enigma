@@ -1,10 +1,8 @@
 import React, {Component} from 'react';
 import renderIf from "render-if";
 import Button from '@material-ui/core/Button';
-import CssBaseline from '@material-ui/core/CssBaseline';
 import Typography from '@material-ui/core/Typography';
 import Container from '@material-ui/core/Container';
-import {makeStyles} from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
 import Grid from '@material-ui/core/Grid';
 import InputLabel from '@material-ui/core/InputLabel';
@@ -14,11 +12,10 @@ import Select from '@material-ui/core/Select';
 import TextField from '@material-ui/core/TextField';
 import Radio from '@material-ui/core/Radio';
 import RadioGroup from '@material-ui/core/RadioGroup';
-import FormHelperText from '@material-ui/core/FormHelperText';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import FormLabel from '@material-ui/core/FormLabel';
-
-import './App.css';
+import Chip from '@material-ui/core/Chip';
+import {withStyles} from "@material-ui/core";
 
 
 ////////////////////////////////////// ENIGMA CONSTANTS /////////////////////////////////////////
@@ -47,6 +44,11 @@ const arrReflector = [];
 arrReflector["b"] = ".YRUHQSLDPXNGOKMIEBFZCWVJAT";      // M3 B
 arrReflector["c"] = ".FVPJIAOYEDRZXWGCTKUQSBNMHL";      // M3 C
 
+const letters = [];
+for (let i = 0; i < 26; i++) {
+    let index = String.fromCharCode(i + 65);
+    letters.push(index);
+}
 
 class Home extends Component {
     // all state variables
@@ -60,7 +62,7 @@ class Home extends Component {
         debug_string: '',
         msg_in: '',
         msg_out: '',
-        plugboard: null,
+        plugboard: '.ABCDEFGHIJKLMNOPQRSTUVWXYZ',
 
         useReflector: 'b',
         wheel_r: 3,
@@ -79,34 +81,27 @@ class Home extends Component {
         wOpen1: false,
         wOpen2: false,
         wOpen3: false,
-        gOpen:false,
+        gOpen: false,
 
     };
 
     validLetter = (n) => {
         if (n <= 0) {
-            // If negative number, add it to 26 to count back from "Z" (eg, 26 + -5 = 21)
-            // Emulates wheel rotating backwards
             return (26 + n);
         } else if (n > 26) {
-            // If number greater than 26, subtract 26 to count forward from "A" (eg, 30 - 26 = 4)
-            // Emulates wheel rotating forwards
+
             return (n - 26);
-        } else {
-            // Or do nothing!
-            return n;
-        }
+        } else return n;
     };
 
     run_debug = (m, n) => {
         let ds = this.state.debug_string;
         if (m === 1) {
             let output = ds + plaintext.charAt(n);
-
             // show conversion to user
             console.log(output);
             this.setState({debug_string: output});
-        } else this.setState({debug_string: ds + plaintext.charAt(n) + " > "});
+        } else this.state.debug_string += plaintext.charAt(n) + " > ";
     };
 
     rotateCogs = (r, m) => {
@@ -145,25 +140,17 @@ class Home extends Component {
             pl = 1;
         }
 
-        // Display new values in browser
+        // Display new values
         this.setState({
             rightw_set: plaintext.charAt(pr), middlew_set: plaintext.charAt(pm),
             leftw_set: plaintext.charAt(pl)
         });
 
-        // Make values available to the rest of the script as an array.
         return [pr, pm, pl];
     };
 
     swapPlugs = (n) => {
-        let plug_n = this.state.plugboard['A' + n];
-        if (plug_n == null) {
-            // If the input letter is blank (ie, self-steckered), output the letter unchanged.
-            return n;
-        } else {
-            // Otherwise do the swapsies!
-            return plaintext.charAt(plug_n);
-        }
+        return plaintext.indexOf(this.state.plugboard.charAt(n));
     };
 
     mapLetter = (number, ringstellung, wheelposition, wheel, pass) => {
@@ -217,6 +204,7 @@ class Home extends Component {
             this.state.wheel_r === this.state.wheel_l ||
             this.state.wheel_m === this.state.wheel_l) {
             alert("Wheel Numbers must be unique. Eg, I II III not II II II");
+            this.setState({textin: ''});
             return false;
         }
 
@@ -251,10 +239,6 @@ class Home extends Component {
         var number = this.swapPlugs(input);
 
         this.run_debug(0, number);
-
-        // Passes through ETW which acts as a static converter from plugboard wires to wheels
-        // So:  Plugboard --> ETW --> Right Wheel
-        // A -->  A  --> A
 
         // First Pass - R Wheel
         number = this.mapLetter(number, ring_r, start_r, this.state.wheel_r, 1);
@@ -304,9 +288,6 @@ class Home extends Component {
         // Convert value to corresponding letter
         var output = plaintext.charAt(number);
 
-        // Clean number
-        number = '';
-
         // Build Message Strings for Input and Output
         let msg_in = this.state.msg_in;
         let msg_out = this.state.msg_out;
@@ -318,9 +299,10 @@ class Home extends Component {
             msg_out = msg_out + " ";
             counter = 0;
         }
-
-        // Increment counter
+        //Increment the counter
         counter++;
+        msg_in += letterinput;
+        msg_out += output;
 
         // Spit out new string values
         this.setState({msg_in: msg_in, msg_out: msg_out, counter: counter, textin: '', output: output});
@@ -328,69 +310,36 @@ class Home extends Component {
         return true;
     };
 
-    validate = (label, input) => {
-        let pg = this.state.plugboard;
-        if (input.search(/[A-Z]/gi) || label === input) {
-            // If the input is not a letter clear field, focus on it and stop processing.
-            pg[label] = null;
-        }// Otherwise make it a capital letter
-        else pg[label] = input.toUpperCase();
-
-        this.setState({plugboard: pg});
-        return true;
-    };
 
     plugboard = (label, input) => {
-        this.validate(label, input); // make sure letter is A-Z
+        console.log(label, '>', input);
         let pg = this.state.plugboard;
         if (input !== "") {
             // Check latter hasn't been used
-            if (this.state.plugboard[input] == null) {
+            if (this.state.plugboard.charAt(plaintext.indexOf(input)) === input) {
                 // Fill out the paired letter field.
                 //  Eg, if field 'A' is 'D', fill out field 'D' as 'A'
-                pg[input] = label;
-                // this.setState({plugboard: pg});
+                pg = pg.replaceAt(plaintext.indexOf(label), input);
+                pg = pg.replaceAt(plaintext.indexOf(input), label);
             } else {
                 // If the input letter has already been used, ignore it and stop running the script.
                 alert("You have already used the letter '" + input + "' in a connection.\n"
                     + "Delete its current connection to form a new one.");
-                pg[label] = null;
-                // this.setState({plugboard: pg});
-                // return false;
             }
-            // this.setState({plugboard: pg});
         } else {
-            // if (ENIGMA.lastkeypressed == 8 || ENIGMA.lastkeypressed == 46) {
             // Clear plugs on delete
-            pg[label] = null;
-            pg[input] = null;
-            // this.setState({plugboard: pg});
-            // }
+            let otherchar = pg.charAt(plaintext.indexOf(label));
+            pg = pg.replaceAt(plaintext.indexOf(label), label);
+            pg = pg.replaceAt(plaintext.indexOf(otherchar), otherchar);
         }
-
+        console.log(pg);
         this.setState({plugboard: pg});
         return true;
     };
 
     clearSettings = () => {
-        //todo reset the state
-        // this.setState({});
+        //reset the state
         window.location.reload();
-        alert('All settings cleared!');
-    };
-
-    componentDidMount() {
-        //todo initialize the canvas and ENIGMA settings
-        //initialize plugboard
-        let pb = [];
-        for (let i = 0; i < 26; i++) {
-            let index = String.fromCharCode(i + 65);
-            pb[index] = null;
-            //console.log(index);
-        }
-        this.setState({plugboard: pb});
-
-        // console.log(this.state);
     };
 
     validateChar = (ch) => {
@@ -400,25 +349,41 @@ class Home extends Component {
     };
 
     render() {
-        //  const classes = useStyles();
-        const classes = {
-            root: {
-                flexGrow: 1,
-            }
-        };
-
         return (
             <div className="App">
 
                 <React.Fragment>
-                    <Container maxWidth={'100%'} style={{backgroundColor: '#282c34', height: '100vh'}}>
+                    <Container maxWidth={'100%'} style={{backgroundColor: '#282c34', height: '100%'}}>
 
                         <Grid container style={{height: '100%'}} spacing={2} justify={'space-between'}
                               direction={'row'}>
+
                             <Grid item xs={12}>
-                                <Paper style={{height: 150, backgroundColor: '#e2e2e2'}}>xs=12</Paper>
+                                {/*            Paper for plugboard              */}
+                                <Paper style={{height: 150, backgroundColor: '#e2e2e2', marginTop: 10}}>
+                                    <Typography variant="h6" gutterBottom style={{marginTop: 10, textAlign: 'center'}}>
+                                        Steckerbrett ( Plug Board )
+                                    </Typography>
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        flexWrap: 'wrap', paddingLeft: 10
+                                    }}>
+                                        {renderIf(this.state.plugboard !== null)(() => (
+                                            letters.map((v) => (
+                                                <ListItem key={v} text={v}
+                                                          state={this.state}
+                                                          validateChar={this.validateChar}
+                                                          plugboard={this.plugboard}
+                                                />))
+                                        ))}
+
+                                    </div>
+
+                                </Paper>
                             </Grid>
                             <Grid item xs={4}>
+                                {/*                    Paper for Settings                  */}
                                 <Paper style={{height: 500, backgroundColor: '#e2e2e2', paddingTop: 20}}>
                                     <div style={{marginLeft: 10}}>
 
@@ -436,7 +401,7 @@ class Home extends Component {
                                                     onChange={(event) => {
                                                         this.setState({useReflector: event.target.value})
                                                     }}
-                                                    style={{marginLeft: 20}}>
+                                                    style={{marginLeft: 20, backgroundColor: '#efefef'}}>
                                                 <MenuItem value={'b'}>- - - B - - -</MenuItem>
                                                 <MenuItem value={'c'}>- - - C - - -</MenuItem>
                                             </Select>
@@ -448,7 +413,7 @@ class Home extends Component {
 
                                     {/*            Walzenlage starts               */}
 
-                                    <div style={{marginLeft: 10,marginTop: 10}}>
+                                    <div style={{marginLeft: 10, marginTop: 10}}>
                                         <Typography variant="h6" gutterBottom>
                                             Walzenlage :
                                             <Select open={this.state.wOpen1}
@@ -518,7 +483,7 @@ class Home extends Component {
 
                                     {/*            Ring setting start            */}
 
-                                    <div style={{marginLeft: 10,marginTop: 10}}>
+                                    <div style={{marginLeft: 10, marginTop: 10}}>
                                         <Typography variant="h6" gutterBottom>
                                             Ringstellung :
 
@@ -553,7 +518,7 @@ class Home extends Component {
 
                                     {/*              Ground Setting Start                 */}
 
-                                    <div style={{marginLeft: 10,marginTop: 10}}>
+                                    <div style={{marginLeft: 10, marginTop: 10}}>
                                         <Typography variant="h6" gutterBottom>
                                             Grundstellung :
 
@@ -608,7 +573,7 @@ class Home extends Component {
 
                                     {/*           Grouping letters start            */}
 
-                                    <div style={{marginLeft: 10,marginTop: 10}}>
+                                    <div style={{marginLeft: 10, marginTop: 10}}>
                                         <Typography variant="h6" gutterBottom>
                                             Grouping of letters :
                                             <Select open={this.state.gOpen}
@@ -622,7 +587,7 @@ class Home extends Component {
                                                     onChange={(event) => {
                                                         this.setState({grouping: event.target.value})
                                                     }}
-                                                    style={{marginLeft: 30, backgroundColor: '#efefef', width: 40   }}
+                                                    style={{marginLeft: 30, backgroundColor: '#efefef', width: 40}}
                                             >
                                                 <MenuItem value={3}>3</MenuItem>
                                                 <MenuItem value={4}>4</MenuItem>
@@ -632,7 +597,7 @@ class Home extends Component {
                                         </Typography>
                                     </div>
 
-                                    <div style={{marginLeft: 10,marginTop: 10}}>
+                                    <div style={{marginLeft: 10, marginTop: 10}}>
                                         <Button variant="contained" onClick={this.clearSettings}>
                                             Clear Settings
                                         </Button>
@@ -641,7 +606,90 @@ class Home extends Component {
                                 </Paper>
                             </Grid>
                             <Grid item xs={8}>
-                                <Paper style={{height: 500, backgroundColor: '#e2e2e2'}}>xs=8</Paper>
+                                {/*              Paper for Enigma working           */}
+                                <Paper style={{height: 500, backgroundColor: '#e2e2e2'}}>
+                                    <div style={{
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        display: 'flex',
+                                        flexDirection: 'column'
+                                    }}>
+                                        <TextField
+                                            value={this.state.msg_in}
+                                            style={{width: '80%', backgroundColor: '#efefef', marginTop: 20}}
+                                            variant={'outlined'}
+                                            label={'Plain Text'}
+                                            disabled={this.state.inputmethod === 'single'}
+                                            onChange={(event) => {
+                                                this.setState({msg_in: event.target.value.toUpperCase()});
+                                            }}
+                                        />
+                                        <TextField
+                                            value={this.state.msg_out}
+                                            style={{width: '80%', backgroundColor: '#efefef', marginTop: 20}}
+                                            variant={'outlined'}
+                                            label={'Cipher Text'}
+                                            disabled
+                                        />
+                                    </div>
+                                    <div style={{
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        display: 'flex',
+                                        marginTop: 30
+                                    }}>
+                                        <CssTextField
+                                            label="Enter Character"
+                                            value={this.state.textin}
+                                            variant="outlined"
+                                            disabled={this.state.inputmethod === 'multiple'}
+                                            onChange={(event) => {
+                                                let cin = this.validateChar(event.target.value.toUpperCase());
+                                                if (cin !== '') {
+                                                    this.setState({
+                                                        textin: cin,
+                                                        debug_string: ''
+                                                    }, () => this.doCipher());
+                                                }
+                                            }}
+                                            style={{width: 150}}
+                                        />
+                                        {renderIf(this.state.inputmethod === 'multiple')(() => (
+                                            <Button variant="contained"
+                                                    onClick={() => {
+                                                        //feed characters one bye one into cipher
+                                                        let text = this.state.msg_in;
+                                                        this.setState({msg_in: '', msg_out: ''}, () => {
+                                                            let time = 100;
+                                                            for (let i = 0; i < text.length; i++) {
+                                                                let cin = this.validateChar(text[i].toUpperCase());
+                                                                if (cin !== '') {
+                                                                    setTimeout(() => {
+                                                                        this.setState({
+                                                                            textin: cin,
+                                                                            debug_string: ''
+                                                                        }, () => this.doCipher());
+                                                                    }, time);
+                                                                    time += 100;
+
+                                                                }
+                                                            }
+                                                        });
+
+                                                    }}
+                                                    color={'primary'}
+                                                    style={{marginLeft: 10, padding: 15}}>
+                                                Encipher Block
+                                            </Button>
+                                        ))}
+
+                                    </div>
+                                    <div style={{display: 'flex', flexDirection: 'column'}}>
+                                        <Typography variant="h6" gutterBottom style={{marginTop: 100, marginLeft: 10}}>
+                                            Conversion : {this.state.debug_string}
+                                        </Typography>
+                                    </div>
+                                </Paper>
                             </Grid>
                         </Grid>
 
@@ -657,16 +705,57 @@ class Home extends Component {
 }
 
 class ListItem extends Component {
+    constructor(props) {
+        super(props)
+    }
+
     render() {
+        let otherchar = this.props.state.plugboard.charAt(plaintext.indexOf(this.props.text));
         return (
-            <div>
-                <Button variant="contained" color="primary">
-                    Hello World
-                </Button>
+            <div style={{flexDirection: 'column', display: 'flex'}}>
+                <Chip
+                    key={this.props.text}
+                    label={this.props.text}
+                    color={'primary'}
+                    style={{marginLeft: 15, flex: 1, margin: 5, paddingTop: 10, paddingBottom: 10}}
+                />
+                <TextField
+                    value={(this.props.text === otherchar) ? '' : otherchar}
+                    style={{width: 40, flex: 1, marginLeft: 7}}
+                    onChange={(event) => {
+                        let cin = this.props.validateChar(event.target.value.toUpperCase());
+                        this.props.plugboard(this.props.text, cin);
+                    }}
+                />
             </div>
         );
     }
 }
 
+String.prototype.replaceAt = function (index, replacement) {
+    return this.substr(0, index) + replacement + this.substr(index + replacement.length);
+};
+
+const CssTextField = withStyles({
+    root: {
+        '& label.Mui-focused': {
+            color: 'green',
+        },
+        '& .MuiInput-underline:after': {
+            borderBottomColor: 'green',
+        },
+        '& .MuiOutlinedInput-root': {
+            '& fieldset': {
+                borderColor: 'red',
+            },
+            '&:hover fieldset': {
+                borderColor: 'yellow',
+            },
+            '&.Mui-focused fieldset': {
+                borderColor: 'green',
+            },
+        },
+    },
+})(TextField);
 
 export default Home;

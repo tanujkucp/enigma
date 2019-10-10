@@ -350,7 +350,7 @@ class Home extends Component {
         else return ch;
     };
 
-    ///////////////////////////todo creating upload file method //////////////////////////
+    /////////////////////////// creating upload file method //////////////////////////
     fileReader;
     handleFileRead = (e) => {
         let content = this.fileReader.result;

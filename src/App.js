@@ -50,6 +50,7 @@ for (let i = 0; i < 26; i++) {
     letters.push(index);
 }
 
+
 class Home extends Component {
     // all state variables
     state = {
@@ -60,6 +61,7 @@ class Home extends Component {
         grouping: 4,
         textin: '',
         debug_string: '',
+        debug_string_block: '',
         msg_in: '',
         msg_out: '',
         plugboard: '.ABCDEFGHIJKLMNOPQRSTUVWXYZ',
@@ -348,6 +350,65 @@ class Home extends Component {
         else return ch;
     };
 
+    ///////////////////////////todo creating upload file method //////////////////////////
+    fileReader;
+    handleFileRead = (e) => {
+        let content = this.fileReader.result;
+        console.log(content);
+        //feed this into enigma machine
+        //create a debug_string_block string
+        let debug = 'STARTING ENCRYPTION\n\nSETTINGS\n';
+        debug += 'Reflector Wheel: ' + this.state.useReflector + '\n';
+        debug += 'Wheel Order: ' + this.state.wheel_l + ' ' + this.state.wheel_m + ' ' + this.state.wheel_r + '\n';
+        debug += 'Ring Setting: ' + this.state.ring_l + ' ' + this.state.ring_m + ' ' + this.state.ring_r + '\n';
+        debug += 'Ground Setting: ' + this.state.leftw_set + ' ' + this.state.middlew_set + ' ' + this.state.rightw_set + '\n';
+        debug += 'Plug Board: ' + this.state.plugboard + '\n';
+        debug += 'Grouping: ' + this.state.grouping + '\n';
+        debug += '\nINPUT MESSAGE\n' + content + '\n';
+        debug += '\nLOGS';
+
+
+        this.setState({msg_in: '', msg_out: '', debug_string_block: debug}, () => {
+            let time = 100;
+            for (let i = 0; i < content.length; i++) {
+                let cin = this.validateChar(content[i].toUpperCase());
+                if (cin !== '') {
+                    setTimeout(() => {
+                        this.setState({
+                            textin: cin,
+                            debug_string_block: this.state.debug_string_block + '\n' + this.state.debug_string,
+                            debug_string: ''
+                        }, () => this.doCipher());
+                    }, time);
+                    time += 100;
+
+                }
+            }
+            //print the cipher text to the output file
+            setTimeout(() => {
+                let debug = this.state.debug_string_block;
+                debug += '\n' + this.state.debug_string;
+                debug += '\n\nFINISHED ENCRYPTION\n\nCIPHER TEXT\n' + this.state.msg_out;
+                //console.log(debug);
+                console.log(this.state.msg_out);
+                let blob = new Blob([debug], {type: 'text/plain'});
+                var link = document.createElement("a");
+                link.href = window.URL.createObjectURL(blob);
+                link.style = "visibility:hidden";
+                link.download = 'cipher.txt';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }, 100 * content.length + 50);
+        });
+
+    };
+    handleFileChosen = (file) => {
+        this.fileReader = new FileReader();
+        this.fileReader.onloadend = this.handleFileRead;
+        this.fileReader.readAsText(file);
+    };
+
     render() {
         return (
             <div className="App">
@@ -565,8 +626,9 @@ class Home extends Component {
                                                 }}
                                                 row>
                                                 <FormControlLabel value="single" control={<Radio/>}
-                                                                  label="Single Character"/>
+                                                                  label="Character"/>
                                                 <FormControlLabel value="multiple" control={<Radio/>} label="Block"/>
+                                                <FormControlLabel value="file" control={<Radio/>} label="File"/>
                                             </RadioGroup>
                                         </FormControl>
                                     </div>
@@ -619,7 +681,7 @@ class Home extends Component {
                                             style={{width: '80%', backgroundColor: '#efefef', marginTop: 20}}
                                             variant={'outlined'}
                                             label={'Plain Text'}
-                                            disabled={this.state.inputmethod === 'single'}
+                                            disabled={this.state.inputmethod !== 'multiple'}
                                             onChange={(event) => {
                                                 this.setState({msg_in: event.target.value.toUpperCase()});
                                             }}
@@ -638,25 +700,30 @@ class Home extends Component {
                                         display: 'flex',
                                         marginTop: 30
                                     }}>
-                                        <CssTextField
-                                            label="Enter Character"
-                                            value={this.state.textin}
-                                            variant="outlined"
-                                            disabled={this.state.inputmethod === 'multiple'}
-                                            onChange={(event) => {
-                                                let cin = this.validateChar(event.target.value.toUpperCase());
-                                                if (cin !== '') {
-                                                    this.setState({
-                                                        textin: cin,
-                                                        debug_string: ''
-                                                    }, () => this.doCipher());
-                                                }
-                                            }}
-                                            style={{width: 150}}
-                                        />
+                                        {renderIf(this.state.inputmethod === 'single')(() => (
+                                            <CssTextField
+                                                label="Enter Character"
+                                                value={this.state.textin}
+                                                variant="outlined"
+                                                disabled={this.state.inputmethod !== 'single'}
+                                                onChange={(event) => {
+                                                    let cin = this.validateChar(event.target.value.toUpperCase());
+                                                    if (cin !== '') {
+                                                        this.setState({
+                                                            textin: cin,
+                                                            debug_string: ''
+                                                        }, () => this.doCipher());
+                                                    }
+                                                }}
+                                                style={{width: 150}}
+                                            />
+                                        ))}
+
+
                                         {renderIf(this.state.inputmethod === 'multiple')(() => (
                                             <Button variant="contained"
                                                     onClick={() => {
+
                                                         //feed characters one bye one into cipher
                                                         let text = this.state.msg_in;
                                                         this.setState({msg_in: '', msg_out: ''}, () => {
@@ -683,6 +750,16 @@ class Home extends Component {
                                             </Button>
                                         ))}
 
+                                        {renderIf(this.state.inputmethod === 'file')(() => (
+                                            <input
+                                                type='file'
+                                                id={'file'}
+                                                className={'input-file'}
+                                                accept={'.txt'}
+                                                onChange={e => this.handleFileChosen(e.target.files[0])}
+                                            />
+                                        ))}
+
                                     </div>
                                     <div style={{display: 'flex', flexDirection: 'column'}}>
                                         <Typography variant="h6" gutterBottom style={{marginTop: 100, marginLeft: 10}}>
@@ -702,7 +779,10 @@ class Home extends Component {
 
         );
     }
+
+
 }
+
 
 class ListItem extends Component {
     constructor(props) {
@@ -757,5 +837,6 @@ const CssTextField = withStyles({
         },
     },
 })(TextField);
+
 
 export default Home;
